@@ -1,22 +1,27 @@
 // Service EmailJS pour envoyer les formulaires
-import emailjs from 'emailjs-com'
+import emailjs from '@emailjs/browser'
 
-// Configuration EmailJS - À remplacer par vos propres clés
-// 1. Créez un compte sur https://www.emailjs.com/
-// 2. Créez un service email (Gmail, Outlook, etc.)
-// 3. Créez un template
+// ============================================
+// CONFIGURATION EmailJS
+// ============================================
+// 1. Créez un compte gratuit sur https://www.emailjs.com/
+// 2. Créez un service (PAS Gmail - utilisez plutôt un autre service)
+//    Solution simple : utilisez le service "Outlook" ou "Yahoo"
+//    Ou configurez un SMTP personnalisé
+// 3. Créez vos templates
 // 4. Remplacez les valeurs ci-dessous
+// ============================================
 
 const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_votre_service',     // Remplacez par votre Service ID
-  TEMPLATE_ID_CONTACT: 'template_contact',  // Remplacez par votre Template ID pour contact
-  TEMPLATE_ID_CV: 'template_cv',            // Remplacez par votre Template ID pour CV
-  USER_ID: 'votre_user_id'                  // Remplacez par votre Public Key
+  SERVICE_ID: 'service_votre_service',      // Remplacez par votre Service ID
+  TEMPLATE_ID_CONTACT: 'template_contact',   // Remplacez par votre Template ID Contact
+  TEMPLATE_ID_CV: 'template_cv',            // Remplacez par votre Template ID CV
+  PUBLIC_KEY: 'votre_public_key'             // Remplacez par votre Public Key
 }
 
 // Initialiser EmailJS
 export const initEmailJS = () => {
-  emailjs.init(EMAILJS_CONFIG.USER_ID)
+  emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY)
 }
 
 // Envoyer le formulaire de contact
