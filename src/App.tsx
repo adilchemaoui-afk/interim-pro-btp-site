@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { 
   Menu, X, Phone, Mail, MapPin, ChevronDown, HardHat, 
   Zap, Paintbrush, Hammer, Truck, Building2, 
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
+import { sendContactEmail, sendCVEmail, initEmailJS } from './services/emailService'
 import './App.css'
 
 function App() {
@@ -23,7 +24,13 @@ function App() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isSending, setIsSending] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Initialiser EmailJS au chargement
+  useEffect(() => {
+    initEmailJS()
+  }, [])
 
   // Scroll handler
   if (typeof window !== 'undefined') {
@@ -40,9 +47,56 @@ function App() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Envoyer le formulaire de contact
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    toast.success('Formulaire envoyé avec succès ! Nous vous contacterons bientôt.')
+    setIsSending(true)
+    
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      await sendContactEmail({
+        nom: formData.get('nom') as string || '',
+        prenom: formData.get('prenom') as string || '',
+        email: formData.get('email') as string || '',
+        telephone: formData.get('telephone') as string || '',
+        type: formData.get('type') as string || '',
+        departement: formData.get('departement') as string || '',
+        message: formData.get('message') as string || ''
+      })
+      toast.success('Message envoyé avec succès ! Nous vous répondrons rapidement.')
+      e.currentTarget.reset()
+    } catch (error) {
+      console.error(error)
+      toast.error('Erreur lors de l\'envoi. Veuillez réessayer.')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  // Envoyer le formulaire CV
+  const handleSubmitCV = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSending(true)
+    
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      await sendCVEmail({
+        nom: formData.get('nom_cv') as string || '',
+        email: formData.get('email_cv') as string || '',
+        telephone: formData.get('telephone_cv') as string || '',
+        cv_filename: cvFile ? cvFile.name : 'Non téléchargé'
+      })
+      toast.success('CV envoyé avec succès ! Notre équipe vous contactera.')
+      setCvFile(null)
+      e.currentTarget.reset()
+    } catch (error) {
+      console.error(error)
+      toast.error('Erreur lors de l\'envoi. Veuillez réessayer.')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   // CV Upload handlers
@@ -424,28 +478,32 @@ function App() {
                     )}
                   </div>
                   
-                  <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                  <form onSubmit={handleSubmitCV} className="mt-6 space-y-4">
                     <Input 
+                      name="nom_cv"
                       placeholder="Nom complet" 
                       className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500 focus:border-emerald-400"
                       required 
                     />
                     <Input 
+                      name="email_cv"
                       placeholder="Email" 
                       type="email"
                       className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500 focus:border-emerald-400"
                       required 
                     />
                     <Input 
+                      name="telephone_cv"
                       placeholder="Téléphone" 
                       type="tel"
                       className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500 focus:border-emerald-400"
                     />
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-eco-dark font-semibold"
+                      disabled={isSending}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-eco-dark font-semibold disabled:opacity-50"
                     >
-                      <Sparkles className="w-4 h-4 mr-2" /> Envoyer mon CV
+                      {isSending ? 'Envoi en cours...' : <><Sparkles className="w-4 h-4 mr-2" /> Envoyer mon CV</>}
                     </Button>
                   </form>
                 </CardContent>
@@ -851,34 +909,46 @@ function App() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <Input 
+                      name="nom"
                       placeholder="Nom" 
                       className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500"
                       required 
                     />
                     <Input 
+                      name="prenom"
                       placeholder="Prénom" 
                       className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500"
                       required 
                     />
                   </div>
                   <Input 
+                    name="email"
                     placeholder="Email" 
                     type="email" 
                     className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500"
                     required 
                   />
                   <Input 
+                    name="telephone"
                     placeholder="Téléphone" 
                     type="tel" 
                     className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500"
                   />
-                  <select className="w-full px-3 py-2 rounded-md bg-eco-dark border border-emerald-500/30 text-white">
+                  <select name="type" className="w-full px-3 py-2 rounded-md bg-eco-dark border border-emerald-500/30 text-white">
                     <option value="">Vous êtes...</option>
                     <option value="candidat">Candidat</option>
                     <option value="employeur">Employeur</option>
                     <option value="partenaire">Partenaire Formation</option>
                   </select>
+                  <select name="departement" className="w-full px-3 py-2 rounded-md bg-eco-dark border border-emerald-500/30 text-white">
+                    <option value="">Département...</option>
+                    <option value="candidats">Candidats</option>
+                    <option value="employeurs">Employeurs</option>
+                    <option value="formations">Formations</option>
+                    <option value="marketing">Marketing</option>
+                  </select>
                   <Textarea 
+                    name="message"
                     placeholder="Votre message" 
                     rows={4} 
                     className="bg-eco-dark border-emerald-500/30 text-white placeholder:text-gray-500"
@@ -886,9 +956,10 @@ function App() {
                   />
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-eco-dark font-semibold"
+                    disabled={isSending}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-eco-dark font-semibold disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4 mr-2" /> Envoyer
+                    {isSending ? 'Envoi en cours...' : <><Send className="w-4 h-4 mr-2" /> Envoyer</>}
                   </Button>
                 </form>
               </CardContent>
